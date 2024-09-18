@@ -1,4 +1,4 @@
-const useQWERTY = false;
+const useQWERTY = true;
 const directionalKeys = useQWERTY ? "hjkl" : "dhtn";
 
 vim = {
@@ -6,7 +6,7 @@ vim = {
     "num": "", // Keep track of number keys pressed by the user
     "currentSequence": "", // Keep track of key sequences
     "escapeSequence": useQWERTY ? "jk" : "hn",
-    "keyMaps" : {
+    "keyMaps": {
         "Backspace": [["ArrowLeft"]],
         "x": [["Delete"]],
         "b": [["ArrowLeft", true]], // ctrl + <-
@@ -29,28 +29,28 @@ vim.keyMaps[directionalKeys[1]] = [["ArrowDown"]];
 vim.keyMaps[directionalKeys[2]] = [["ArrowUp"]];
 vim.keyMaps[directionalKeys[3]] = [["ArrowRight"]];
 
-vim.addKeyMappings = function (baseMap) {
+vim.addKeyMappings = function(baseMap) {
     baseMap[vim.keys.move[0]] = "ArrowLeft";
     baseMap[vim.keys.move[1]] = "ArrowDown";
     baseMap[vim.keys.move[2]] = "ArrowUp";
     baseMap[vim.keys.move[3]] = "ArrowRight";
 };
 
-vim.switchToNormalMode = function () {
+vim.switchToNormalMode = function() {
     vim.currentSequence = "";
     vim.mode = "normal";
     vim.num = "";
     docs.setCursorWidth("7px");
 };
 
-vim.switchToVisualMode = function () {
+vim.switchToVisualMode = function() {
     vim.currentSequence = "";
     vim.mode = "visual";
     vim.num = "";
     docs.setCursorWidth("7px");
 };
 
-vim.switchToInsertMode = function () {
+vim.switchToInsertMode = function() {
     vim.currentSequence = "";
     vim.mode = "insert";
     vim.num = "";
@@ -58,7 +58,7 @@ vim.switchToInsertMode = function () {
 };
 
 // Called in normal mode.
-vim.normal_keydown = function (e) {
+vim.normal_keydown = function(e) {
     if (e.key.match(/F\d+/)) {
         // Pass through any function keys.
         return true;
@@ -98,7 +98,7 @@ vim.normal_keydown = function (e) {
 };
 
 // Called in visual mode.
-vim.visual_keydown = function (e) {
+vim.visual_keydown = function(e) {
     if (e.key.match(/F\d+/)) {
         // Pass through any function keys.
         return true;
@@ -148,7 +148,7 @@ vim.visual_keydown = function (e) {
 };
 
 // Called in insert mode.
-vim.insert_keydown = function (e) {
+vim.insert_keydown = function(e) {
     if (e.key == "Escape") {
         vim.switchToNormalMode();
     }
@@ -172,7 +172,7 @@ vim.insert_keydown = function (e) {
     }
 };
 
-docs.keydown = function (e) {
+docs.keydown = function(e) {
     if (vim.mode == "insert") {
         return vim.insert_keydown(e);
     }
