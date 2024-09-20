@@ -55,6 +55,7 @@ docs.texttarget = docs.texttarget.find("[contenteditable=\"true\"]");
 // to use e.key in all modern browsers.
 docs.keydown_ = function(e) {
     if (e.docs_plus_ || !docs.keydown) {
+        console.log("event fired!")
         return;
     }
     return docs.keydown(e);
@@ -63,13 +64,17 @@ docs.texttarget.on("keydown", docs.keydown_);
 
 // Simulate a key press.
 docs.pressKey = function(keyCode, ctrlKey, shiftKey) {
-    var el = document.getElementsByClassName("docs-texteventtarget-iframe")[0];
-    el = el.contentDocument;
+    //console.log("Pressing: " + keyCode + ctrlKey + shiftKey)
+    const el = document.getElementsByClassName("docs-texteventtarget-iframe")[0].contentDocument;
+    const is_command = (keyCode <= 46) || ctrlKey;
 
-    var is_command = (keyCode <= 46) || ctrlKey;
+    const data = {
+        keyCode: keyCode,
+        ctrlKey: ctrlKey,
+        shiftKey: shiftKey,
+    };
 
-    var data = { "keyCode": keyCode, "ctrlKey": ctrlKey, "shiftKey": shiftKey };
-    var key_event;
+    let key_event;
     if (is_command) {
         key_event = new KeyboardEvent("keydown", data);
     } else {
@@ -110,6 +115,7 @@ docs.pasteText = function(text) {
         "data": text,
         "dataType": "text/plain"
     });
+
     paste.docs_plus_ = true;
 
     el.dispatchEvent(paste);

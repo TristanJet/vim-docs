@@ -1,6 +1,6 @@
 const useQWERTY = true;
 const directionalKeys = useQWERTY ? "hjkl" : "dhtn";
-
+// top of page is ctrlfnhome, bottom is cctrlfnend => will be different on mac
 vim = {
     "mode": "insert", // Keep track of current mode
     "num": "", // Keep track of number keys pressed by the user
@@ -77,7 +77,28 @@ vim.normal_keydown = function(e) {
         return true;
     }
 
+    if (e.key == "g") {
+        console.log("g pressed")
+        if (vim.currentSequence !== "g") {
+            vim.currentSequence = "g";
+            console.log(vim.currentSequence)
+            return true
+        }
+        vim.switchToInsertMode();
+        docs.pressKey(36, true, false);
+        vim.switchToNormalMode();
+    }
+
+    if (e.key == "G") {
+        console.log("G pressed")
+        vim.switchToInsertMode();
+        docs.pressKey(35, true, false);
+        vim.switchToNormalMode();
+
+    }
+
     if (e.key == "p") {
+        console.log("p pressed!")
         docs.clip.readText().then(
             (cltxt) => docs.pasteText(cltxt)
         ).catch(
@@ -127,6 +148,7 @@ vim.visual_keydown = function(e) {
         if (e.key == "y") {
             console.log("Y - pressed!");
             docs.cdoc.execCommand("copy");
+            vim.switchToNormalMode();
             //     const sel = docs.cdoc.getSelection();
             //     console.log(sel.toString())
             //     docs.clip.writeText(sel.toString()).then(
@@ -136,6 +158,8 @@ vim.visual_keydown = function(e) {
             //     )
         } else {
             console.log("D - pressed");
+            docs.cdoc.execCommand("cut");
+            vim.switchToNormalMode();
         }
         return false;
     }
