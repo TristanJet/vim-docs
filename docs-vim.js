@@ -77,6 +77,15 @@ vim.normal_keydown = function(e) {
         return true;
     }
 
+    if (e.key == "p") {
+        docs.clip.readText().then(
+            (cltxt) => docs.pasteText(cltxt)
+        ).catch(
+            () => console.log("paste failed")
+        )
+        return true;
+    }
+
     if (e.key.match(/\d+/)) {
         vim.num += e.key.toString();
     }
@@ -107,18 +116,28 @@ vim.visual_keydown = function(e) {
     if (e.key == "Escape") {
         // Escape visual mode.
         vim.switchToNormalMode();
-    }
-
-    vim.currentSequence += e.key;
-    if (vim.currentSequence == vim.escapeSequence) {
         e.preventDefault();
         e.stopPropagation();
-
-        vim.switchToNormalMode();
         return false;
     }
-    if (vim.escapeSequence.indexOf(vim.currentSequence) != 0) {
-        vim.currentSequence = e.key;
+
+    if (e.key == "y" || e.key == "d") {
+        e.preventDefault();
+        e.stopPropagation();
+        if (e.key == "y") {
+            console.log("Y - pressed!");
+            docs.cdoc.execCommand("copy");
+            //     const sel = docs.cdoc.getSelection();
+            //     console.log(sel.toString())
+            //     docs.clip.writeText(sel.toString()).then(
+            //         () => console.log(sel)
+            //     ).catch(
+            //         () => console.log("failed :")
+            //     )
+        } else {
+            console.log("D - pressed");
+        }
+        return false;
     }
 
     e.preventDefault();
@@ -128,6 +147,7 @@ vim.visual_keydown = function(e) {
         vim.num += e.key.toString();
     }
 
+    //moving
     vim.keyMaps[e.key]?.forEach(([key, ...args]) => {
         const numRepeats = parseInt(vim.num) || 1;
         for (let i = 0; i < numRepeats; i++) {
@@ -147,7 +167,6 @@ vim.visual_keydown = function(e) {
     return false;
 };
 
-// Called in insert mode.
 vim.insert_keydown = function(e) {
     if (e.key == "Escape") {
         vim.switchToNormalMode();
