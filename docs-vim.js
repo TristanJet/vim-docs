@@ -77,6 +77,40 @@ vim.normal_keydown = function(e) {
         return true;
     }
 
+    /*ONLY WORKS IF AT 0 POSITION*/
+    if (e.key == "d") {
+        console.log("NORMAL: d - pressed")
+        if (vim.currentSequence === "d") {
+            vim.currentSequence = "";
+            docs.pressKey(40, false, true); // Shift + down goes to end of the line
+            docs.cdoc.execCommand("copy"); // Copy the line, cut doesn't work for some reason
+            docs.pressKey(46); // Delete key to remove the selected line
+            return true;
+        } else {
+            vim.currentSequence = "d";
+            return true;
+        }
+    }
+
+    /*ONLY WORKS IF AT 0 POSITION*/
+    if (e.key == "y") {
+        console.log("NORMAL: y - pressed")
+        if (vim.currentSequence === "y") {
+            vim.currentSequence = "";
+            docs.pressKey(40, false, true); // Shift + down goes to end of the line
+            docs.cdoc.execCommand("copy");
+            docs.setColor("red");
+            setTimeout(() => {
+                docs.setColor("black")
+                docs.pressKey(38, true, true); // Up arrow to return to original position
+            }, 100)
+            return true;
+        } else {
+            vim.currentSequence = "y";
+            return true;
+        }
+    }
+
     if (e.key == "g") {
         console.log("NORMAL: g - pressed")
         if (vim.currentSequence === "g") {
