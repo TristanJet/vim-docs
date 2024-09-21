@@ -1,6 +1,6 @@
 const useQWERTY = true;
 const directionalKeys = useQWERTY ? "hjkl" : "dhtn";
-// top of page is ctrlfnhome, bottom is cctrlfnend => will be different on mac
+// top of page is ctrl + home, bottom is ctrl + end => will be different on mac
 vim = {
     "mode": "insert", // Keep track of current mode
     "num": "", // Keep track of number keys pressed by the user
@@ -77,14 +77,19 @@ vim.normal_keydown = function(e) {
         return true;
     }
 
-    /*ONLY WORKS IF AT 0 POSITION*/
     if (e.key == "d") {
         console.log("NORMAL: d - pressed")
         if (vim.currentSequence === "d") {
             vim.currentSequence = "";
-            docs.pressKey(40, false, true); // Shift + down goes to end of the line
-            docs.cdoc.execCommand("copy"); // Copy the line, cut doesn't work for some reason
-            docs.pressKey(46); // Delete key to remove the selected line
+            docs.pressKey(40, true, false);
+            docs.pressKey(38, true, false); // to guarantee that cursor is at the start
+            docs.pressKey(40, true, true); // Shift + down goes to end of the line
+            docs.cdoc.execCommand("copy"); // Copy the line, cut doesn't work for some reason            
+            docs.setColor("red");
+            setTimeout(() => {
+                docs.setColor("black")
+                docs.pressKey(46); // Delete key to remove the selected line
+            }, 100)
             return true;
         } else {
             vim.currentSequence = "d";
@@ -92,12 +97,13 @@ vim.normal_keydown = function(e) {
         }
     }
 
-    /*ONLY WORKS IF AT 0 POSITION*/
     if (e.key == "y") {
         console.log("NORMAL: y - pressed")
         if (vim.currentSequence === "y") {
             vim.currentSequence = "";
-            docs.pressKey(40, false, true); // Shift + down goes to end of the line
+            docs.pressKey(40, true, false);
+            docs.pressKey(38, true, false); // to guarantee that cursor is at the start
+            docs.pressKey(40, true, true); // Shift + down goes to end of the line/paragraph
             docs.cdoc.execCommand("copy");
             docs.setColor("red");
             setTimeout(() => {
