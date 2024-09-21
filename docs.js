@@ -135,6 +135,7 @@ docs.colors = {
     "black": "#docs-material-colorpalette-cell-0 > div:nth-child(1)",
     "gray": "#docs-material-colorpalette-cell-5 > div:nth-child(1)",
     "white": "#docs-material-colorpalette-cell-9 > div:nth-child(1)",
+    "red": "#docs-material-colorpalette-cell-11 > div:nth-child(1)",
 };
 
 // Sets the color of inserted (or selected) text. @color can either be a

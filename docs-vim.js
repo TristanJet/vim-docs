@@ -78,27 +78,26 @@ vim.normal_keydown = function(e) {
     }
 
     if (e.key == "g") {
-        console.log("g pressed")
-        if (vim.currentSequence !== "g") {
+        console.log("NORMAL: g - pressed")
+        if (vim.currentSequence === "g") {
+            vim.currentSequence = "";
+            docs.pressKey(36, true, false); // Ctrl + Home (go to start of document)
+            return true;
+        } else {
             vim.currentSequence = "g";
-            console.log(vim.currentSequence)
-            return true
+            return true;
         }
-        vim.switchToInsertMode();
-        docs.pressKey(36, true, false);
-        vim.switchToNormalMode();
     }
 
     if (e.key == "G") {
-        console.log("G pressed")
-        vim.switchToInsertMode();
-        docs.pressKey(35, true, false);
-        vim.switchToNormalMode();
-
+        console.log("NORMAL: G - pressed")
+        vim.currentSequence = "";
+        docs.pressKey(35, true, false); // Ctrl + End (go to end of document)
+        return true;
     }
 
     if (e.key == "p") {
-        console.log("p pressed!")
+        console.log("NORMAL: p pressed!")
         docs.clip.readText().then(
             (cltxt) => docs.pasteText(cltxt)
         ).catch(
@@ -120,6 +119,7 @@ vim.normal_keydown = function(e) {
     });
 
     if (vim.needsInsert.includes(e.key)) {
+        console.log(`Switch to insert: ${e.key} - pressed`)
         vim.switchToInsertMode();
         return true;
     }
@@ -146,22 +146,18 @@ vim.visual_keydown = function(e) {
         e.preventDefault();
         e.stopPropagation();
         if (e.key == "y") {
-            console.log("Y - pressed!");
+            console.log("VISUAL: y - pressed!");
             docs.cdoc.execCommand("copy");
             vim.switchToNormalMode();
-            //     const sel = docs.cdoc.getSelection();
-            //     console.log(sel.toString())
-            //     docs.clip.writeText(sel.toString()).then(
-            //         () => console.log(sel)
-            //     ).catch(
-            //         () => console.log("failed :")
-            //     )
+            docs.setColor("red");
+            setTimeout(() => docs.setColor("black"), 100)
+            return true
         } else {
-            console.log("D - pressed");
+            console.log("VISUAL: d - pressed");
             docs.cdoc.execCommand("cut");
             vim.switchToNormalMode();
+            return true
         }
-        return false;
     }
 
     e.preventDefault();
@@ -169,6 +165,25 @@ vim.visual_keydown = function(e) {
 
     if (e.key.match(/\d+/)) {
         vim.num += e.key.toString();
+    }
+
+    if (e.key == "g") {
+        console.log("VISUAL: g - pressed")
+        if (vim.currentSequence === "g") {
+            vim.currentSequence = "";
+            docs.pressKey(36, true, true); // Ctrl + Shift + Home (select to start of document)
+            return true;
+        } else {
+            vim.currentSequence = "g";
+            return true;
+        }
+    }
+
+    if (e.key == "G") {
+        console.log("VISUAL: G - pressed")
+        vim.currentSequence = "";
+        docs.pressKey(35, true, true); // Ctrl + Shift + End (select to end of document)
+        return true;
     }
 
     //moving
