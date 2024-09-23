@@ -78,6 +78,11 @@ vim.normal_keydown = function(e) {
         return true;
     }
 
+    if (e.key == "u") {
+        docs.pressKey(90, true, false); //Ctrl + z
+        return true;
+    }
+
     if (e.key == "d") {
         if (vim.currentSequence === "d") {
             vim.currentSequence = "";
@@ -229,17 +234,16 @@ vim.visual_keydown = function(e) {
         return true;
     }
 
+    e.preventDefault();
+    e.stopPropagation();
+
     if (e.key == "Escape") {
         // Escape visual mode.
         vim.switchToNormalMode();
-        e.preventDefault();
-        e.stopPropagation();
         return false;
     }
 
     if (e.key == "y" || e.key == "d" || e.key == "c") {
-        e.preventDefault();
-        e.stopPropagation();
         if (e.key == "y") {
             docs.cdoc.execCommand("copy");
             vim.switchToNormalMode();
@@ -264,9 +268,6 @@ vim.visual_keydown = function(e) {
             return true
         }
     }
-
-    e.preventDefault();
-    e.stopPropagation();
 
     if (e.key.match(/\d+/)) {
         vim.num += e.key.toString();
