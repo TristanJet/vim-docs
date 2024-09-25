@@ -43,8 +43,8 @@ docs.keydown = function(e) {
             console.log(`NORMAL: ${e.key} - pressed`);
             eventToCommand(e);
 
-            const move = moveCommand()
-            if (move) {
+            const move = moveCommand("n")
+            if (move.length) {
                 move.forEach((x) => x())
                 if (vim.needsInsert.includes(currentCommand[0])) {
                     console.log(`Switch to insert: ${e.key} - pressed`);
@@ -64,7 +64,25 @@ docs.keydown = function(e) {
         case 'visual':
             console.log(`VISUAL: ${e.key} - pressed`);
             eventToCommand(e);
-            return vim.visual_keydown(e)
+
+            const moveVis = moveCommand("v")
+            if (moveVis.length) {
+                moveVis.forEach((x) => x())
+                if (vim.needsInsert.includes(currentCommand[0])) {
+                    console.log(`Switch to insert: ${e.key} - pressed`);
+                    vim.switchToInsertMode();
+                    currentCommand = emptyCommand();
+                }
+                currentCommand = emptyCommand();
+                return true;
+            }
+
+            const [visCmd, visHandled] = visualCommands()
+            if (visCmd) {
+                visCmd()
+                currentCommand = emptyCommand();
+            }
+            return visHandled;
         case 'insert':
             if (e.key === "Escape") {
                 vim.switchToNormalMode();
@@ -139,17 +157,37 @@ function normalCommands() {
     }
 }
 
-// Command handlers
-const commandHandlers = {
-    visual: {
-        "Escape": () => vim.switchToNormalMode(),
-        "y": handleVisualYank,
-        "d": handleVisualDelete,
-        "c": handleVisualChange,
-        "g": handleVisualGotoCommand,
-        "G": () => docs.pressKey(35, true, true) // Ctrl + Shift + End
+function visualCommands() {
+    console.log(currentCommand[0])
+    switch (currentCommand[0]) {
+        case "":
+            return [null, true];
+        case "g":
+            switch (currentCommand[2]) {
+                case "":
+                    return [null, true]
+                case "g":
+                    return [() => docs.pressKey(36, true, true), true]
+                default:
+                    console.log("no case")
+                    return [() => { return }, false]
+            }
+        case "G":
+            return [() => docs.pressKey(35, true, true), true]
+        case "y":
+            console.log("YANK!")
+            return [handleVisualYank, true]
+        case "d":
+            return [handleVisualDelete, true]
+        case "c":
+            return [handleVisualChange, true]
+        case "Escape":
+            return [vim.switchToNormalMode, true]
+        default:
+            console.log("no case")
+            return [() => { return }, false]
     }
-};
+}
 
 // Mode switching functions
 function switchMode(mode, cursorWidth) {
@@ -170,13 +208,25 @@ function emptyCommand() {
     return ["", 1, ""];
 }
 
-function moveCommand() {
+function moveCommand(mode) {
+    //This function sucks
+    const nrep = currentCommand[1];
     let keyPresses = [];
-    vim.keyMaps[currentCommand[0]]?.forEach(([key, ...args]) => {
-        keyPresses.push(() => docs.pressKey(docs.codeFromKey(key), ...args))
-    });
-    if (keyPresses.length === 0) {
-        return null;
+    if (mode == "n") {
+        vim.keyMaps[currentCommand[0]]?.forEach(([key, ...args]) => {
+            keyPresses.push(() => repeat(() => docs.pressKey(docs.codeFromKey(key), ...args), nrep))
+        });
+    } else {
+        vim.keyMaps[currentCommand[0]]?.forEach(([key, ...args]) => {
+            //Weird way to allow delete to work
+            if (key.indexOf("Arrow") === 0) {
+                const keyArgs = [...args, false, true].slice(0, 2);
+                keyPresses.push(() => repeat(() => docs.pressKey(docs.codeFromKey(key), ...keyArgs), nrep))
+            } else {
+                keyPresses.push(() => docs.pressKey(docs.codeFromKey(key), ...args))
+                vim.switchToNormalMode();
+            }
+        });
     }
     return keyPresses;
 }
@@ -191,14 +241,12 @@ function handleVisualYank() {
     docs.cdoc.execCommand("copy");
     vim.switchToNormalMode();
     highlightBriefly();
-    return true;
 }
 
 function handleVisualDelete() {
     vim.switchToNormalMode();
     highlightBriefly();
     setTimeout(() => docs.cdoc.execCommand("cut"), 50);
-    return true;
 }
 
 function handleVisualChange() {
@@ -207,20 +255,7 @@ function handleVisualChange() {
         docs.pressKey(46); // Delete key
         vim.switchToInsertMode();
     }, 50);
-    return true;
 }
-
-function handleVisualGotoCommand() {
-    if (vim.currentSequence === "g") {
-        vim.currentSequence = "";
-        docs.pressKey(36, true, true); // Ctrl + Shift + Home
-        return true;
-    } else {
-        vim.currentSequence = "g";
-        return true;
-    }
-}
-
 // Helper functions
 function deleteLine() {
     const nrep = currentCommand[1]
@@ -280,12 +315,6 @@ function changeWord() {
     }, 50);
 }
 
-function moveWord() {
-    docs.pressKey(39, true, false);
-    docs.pressKey(39, true, false);
-    docs.pressKey(37, true, false);
-}
-
 function highlightBriefly() {
     docs.setColor("red");
     setTimeout(() => docs.setColor("black"), 50);
@@ -306,57 +335,3 @@ function eventToCommand(e) {
         currentCommand[0] = e.key;
     }
 }
-
-// Key handlers
-vim.normal_keydown = function(e) {
-
-    const handler = commandHandlers.normal[e.key];
-    if (handler) return handler();
-
-    if (e.key.match(/\d+/)) {
-        vim.num += e.key.toString();
-    }
-
-    vim.keyMaps[e.key]?.forEach(([key, ...args]) => {
-        const numRepeats = parseInt(vim.num) || 1;
-        for (let i = 0; i < numRepeats; i++) {
-            docs.pressKey(docs.codeFromKey(key), ...args);
-        }
-        vim.num = "";
-        vim.currentSequence = "";
-    });
-
-    if (vim.needsInsert.includes(e.key)) {
-        console.log(`Switch to insert: ${e.key} - pressed`);
-        vim.switchToInsertMode();
-        return true;
-    }
-
-    return false;
-};
-
-vim.visual_keydown = function(e) {
-
-    const handler = commandHandlers.visual[e.key];
-    if (handler) return handler();
-
-    if (e.key.match(/\d+/)) {
-        vim.num += e.key.toString();
-    }
-
-    vim.keyMaps[e.key]?.forEach(([key, ...args]) => {
-        const numRepeats = parseInt(vim.num) || 1;
-        for (let i = 0; i < numRepeats; i++) {
-            if (key.indexOf("Arrow") === 0) {
-                const keyArgs = [...args, false, true].slice(0, 2);
-                docs.pressKey(docs.codeFromKey(key), ...keyArgs);
-            } else {
-                docs.pressKey(docs.codeFromKey(key), ...args);
-                vim.switchToNormalMode();
-            }
-        }
-        vim.num = "";
-    });
-
-    return false;
-};
