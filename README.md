@@ -7,9 +7,6 @@ vim-docs is a free and open-source chrome/chromium extension that brings many (b
 ## Installation (Chrome)
 ```
 git clone https://github.com/matthewsot/docs-vim.git
-cd docs-vim
-git submodule init
-git submodule update
 ```
 
 * Go to `chrome://extensions/` in Chrome or Chromium.
