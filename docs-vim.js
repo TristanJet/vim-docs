@@ -27,14 +27,6 @@ vim.keyMaps[directionalKeys[1]] = [["ArrowDown"]];
 vim.keyMaps[directionalKeys[2]] = [["ArrowUp"]];
 vim.keyMaps[directionalKeys[3]] = [["ArrowRight"]];
 
-// Mode switching functions
-function switchMode(mode, cursorWidth) {
-    vim.currentSequence = "";
-    vim.mode = mode;
-    vim.num = "";
-    docs.setCursorWidth(cursorWidth);
-}
-
 vim.switchToNormalMode = () => switchMode("normal", "7px");
 vim.switchToVisualMode = () => switchMode("visual", "7px");
 vim.switchToInsertMode = () => switchMode("insert", "2px");
@@ -45,25 +37,30 @@ let currentCommand = emptyCommand();
 
 docs.keydown = function(e) {
     console.log(currentCommand)
+    console.log(vim.mode)
     switch (vim.mode) {
         case 'normal':
             console.log(`NORMAL: ${e.key} - pressed`);
             eventToCommand(e);
 
-            if (vim.needsInsert.includes(currentCommand[0])) {
-                console.log(`Switch to insert: ${e.key} - pressed`);
-                vim.switchToInsertMode();
-                return true;
-            }
-
             const move = moveCommand()
             if (move) {
                 move.forEach((x) => x())
+                if (vim.needsInsert.includes(currentCommand[0])) {
+                    console.log(`Switch to insert: ${e.key} - pressed`);
+                    vim.switchToInsertMode();
+                    currentCommand = emptyCommand();
+                }
                 currentCommand = emptyCommand();
                 return true;
             }
 
-            return normalCommands()
+            const [cmd, handled] = normalCommands()
+            if (cmd) {
+                cmd()
+                currentCommand = emptyCommand();
+            }
+            return handled;
         case 'visual':
             console.log(`VISUAL: ${e.key} - pressed`);
             eventToCommand(e);
@@ -74,25 +71,67 @@ docs.keydown = function(e) {
             }
             return true;
         default:
-            vim.mode = 'normal';
-            currentCommand = emptyCommand();
+            vim.mode = 'normal'; currentCommand = emptyCommand();
     }
 };
 
+function normalCommands() {
+    switch (currentCommand[0]) {
+        case "":
+            return [null, true];
+        case "y":
+            switch (currentCommand[2]) {
+                case "":
+                    return [null, true];
+                case "w":
+                    return [yankWord, true];
+                case "y":
+                    return [yankLine, true];
+                default:
+                    console.log("no case")
+                    return [() => { return }, false];
+            }
+        case "d":
+            switch (currentCommand[2]) {
+                case "":
+                    return [null, true]
+                case "w":
+                    return [deleteWord, true]
+                case "d":
+                    return [deleteLine, true]
+                default:
+                    console.log("no case")
+                    return [() => { return }, false]
+            }
+        case "c":
+            return;
+        case "g":
+            switch (currentCommand[2]) {
+                case "":
+                    return [null, true]
+                case "g":
+                    return [() => docs.pressKey(36, true, false), true]
+                default:
+                    return [() => { return }, false]
+            }
+        case "G":
+            return [() => docs.pressKey(35, true, false), true]
+        case "i":
+            return [vim.switchToInsertMode, true]
+        case "v":
+            return [vim.switchToVisualMode, true]
+        case "u":
+            return [() => docs.pressKey(90, true, false), true]
+        case "p":
+            return [handlePutCommand, true]
+        default:
+            console.log("no case")
+            return [() => { return }, false];
+    }
+}
+
 // Command handlers
 const commandHandlers = {
-    normal: {
-        "i": () => vim.switchToInsertMode(),
-        "v": () => vim.switchToVisualMode(),
-        "u": () => docs.pressKey(90, true, false), // Ctrl + z
-        "d": handleDeleteCommand,
-        "c": handleChangeCommand,
-        "y": handleYankCommand,
-        "w": handleWordCommand,
-        "g": handleGotoCommand,
-        "G": () => docs.pressKey(35, true, false), // Ctrl + End
-        "p": handlePutCommand
-    },
     visual: {
         "Escape": () => vim.switchToNormalMode(),
         "y": handleVisualYank,
@@ -103,14 +142,16 @@ const commandHandlers = {
     }
 };
 
-function repeat(func, nrep = null) {
-    let n;
-    if (nrep) {
-        n = nrep;
-    } else {
-        n = currentCommand[1];
-    }
-    for (let i = 0; i < n; i++) {
+// Mode switching functions
+function switchMode(mode, cursorWidth) {
+    vim.currentSequence = "";
+    vim.mode = mode;
+    vim.num = "";
+    docs.setCursorWidth(cursorWidth);
+}
+
+function repeat(func, nrep) {
+    for (let i = 0; i < nrep; i++) {
         console.log(func)
         func()
     }
@@ -118,38 +159,6 @@ function repeat(func, nrep = null) {
 
 function emptyCommand() {
     return ["", 1, ""];
-}
-
-function normalCommands() {
-    switch (currentCommand[0]) {
-        case "":
-            return true;
-        case "y":
-            switch (currentCommand[2]) {
-                case "":
-                    return true;
-                case "w":
-                    yankWord()
-                    currentCommand = emptyCommand();
-                    return true;
-                case "y":
-                    yankLine()
-                    currentCommand = emptyCommand();
-                    return true;
-                default:
-                    currentCommand = emptyCommand();
-                    return false;
-            }
-        case "d":
-            break;
-        case "c":
-            break;
-        case "g":
-        case "G":
-        default:
-            currentCommand = emptyCommand();
-            return false;
-    }
 }
 
 function moveCommand() {
@@ -179,7 +188,6 @@ function handlePutCommand() {
     docs.clip.readText()
         .then(cltxt => docs.pasteText(cltxt))
         .catch(() => console.log("paste failed"));
-    return true;
 }
 
 function handleVisualYank() {
@@ -218,33 +226,36 @@ function handleVisualGotoCommand() {
 
 // Helper functions
 function deleteLine() {
+    const nrep = currentCommand[1]
+    docs.pressKey(40, true, false);
     docs.pressKey(38, true, false);
-    docs.pressKey(40, true, true);
+    repeat(() => docs.pressKey(40, true, true), nrep)
     docs.cdoc.execCommand("copy");
     highlightBriefly();
     setTimeout(() => docs.pressKey(46), 50);
 }
 
 function yankLine() {
+    const nrep = currentCommand[1]
     docs.pressKey(40, true, false);
     docs.pressKey(38, true, false);
-    repeat(() => docs.pressKey(40, true, true))
+    repeat(() => docs.pressKey(40, true, true), nrep)
     docs.cdoc.execCommand("copy");
-    const nrep = currentCommand[1]
     highlightBriefly();
     setTimeout(() => repeat(() => docs.pressKey(38, true, true), nrep), 50);
 }
 
 function yankWord() {
-    repeat(() => docs.pressKey(39, true, true))
-    docs.cdoc.execCommand("copy");
     const nrep = currentCommand[1]
+    repeat(() => docs.pressKey(39, true, true), nrep)
+    docs.cdoc.execCommand("copy");
     highlightBriefly();
     setTimeout(() => repeat(() => docs.pressKey(37, true, true), nrep), 50);
 }
 
 function deleteWord() {
-    docs.pressKey(39, true, true);
+    const nrep = currentCommand[1]
+    repeat(() => docs.pressKey(39, true, true), nrep);
     docs.cdoc.execCommand("copy");
     highlightBriefly();
     setTimeout(() => docs.pressKey(46), 50);
