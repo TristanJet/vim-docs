@@ -104,7 +104,16 @@ function normalCommands() {
                     return [() => { return }, false]
             }
         case "c":
-            return;
+            switch (currentCommand[2]) {
+                case "":
+                    return [null, true]
+                case "w":
+                    return [changeWord, true]
+                case "c":
+                    return [changeLine, true];
+                default:
+                    return [() => { return }, false]
+            }
         case "g":
             switch (currentCommand[2]) {
                 case "":
@@ -172,18 +181,6 @@ function moveCommand() {
     return keyPresses;
 }
 
-
-function handleGotoCommand() {
-    if (vim.currentSequence === "g") {
-        vim.currentSequence = "";
-        docs.pressKey(36, true, false); // Ctrl + Home
-        return true;
-    } else {
-        vim.currentSequence = "g";
-        return true;
-    }
-}
-
 function handlePutCommand() {
     docs.clip.readText()
         .then(cltxt => docs.pasteText(cltxt))
@@ -245,6 +242,18 @@ function yankLine() {
     setTimeout(() => repeat(() => docs.pressKey(38, true, true), nrep), 50);
 }
 
+function changeLine() {
+    const nrep = currentCommand[1]
+    docs.pressKey(40, true, false);
+    docs.pressKey(38, true, false);
+    repeat(() => docs.pressKey(40, true, true), nrep)
+    highlightBriefly();
+    setTimeout(() => {
+        vim.switchToInsertMode();
+        docs.pressKey(46);
+    }, 50);
+}
+
 function yankWord() {
     const nrep = currentCommand[1]
     repeat(() => docs.pressKey(39, true, true), nrep)
@@ -262,7 +271,8 @@ function deleteWord() {
 }
 
 function changeWord() {
-    docs.pressKey(39, true, true);
+    const nrep = currentCommand[1]
+    repeat(() => docs.pressKey(39, true, true), nrep);
     highlightBriefly();
     setTimeout(() => {
         docs.pressKey(46);
